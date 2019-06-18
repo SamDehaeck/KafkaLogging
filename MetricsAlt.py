@@ -41,7 +41,18 @@ class MetricLogger():
             print('Received more than 1 event: {}'.format(len(commandList)))
             print(commandList)
         else:
-            print('Received the following: {}'.format(commandList[0]))
+            #print('Received the following: {}'.format(commandList[0]))
+            js=commandList[0]
+            print('received a: {}'.format(type(js)))
+            try:
+                configList=js['configuration']
+                for config in configList:
+                    name=config['Name']
+                    measType=config['Measurement']
+                    print('New config with name {} and type {}'.format(name,measType))
+            except:
+                print('Probably a problem in the json.')
+                
         return
     
     def close(self):
@@ -54,7 +65,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('interval',help='Logging interval')
 #    parser.add_argument('-f','--filename',help="Log file name", default="0")
-    parser.add_argument('-o','--kafka_topic',help='Kafka topic name', default='metricLog2')
+    parser.add_argument('-o','--log_topic',help='Kafka Logging topic name', default='metricOutput')
+    parser.add_argument('-i','--command_topic',help='Kafka Command topic name', default='metricInput')
     
     args=parser.parse_args()
     
@@ -63,7 +75,7 @@ if __name__ == '__main__':
         interval=0.1
     
     MM=MetricLogger()
-    kk=KafkaInOut.KafkaInOut(args.kafka_topic,'tempOut')
+    kk=KafkaInOut.KafkaInOut(args.log_topic,args.command_topic)
     kk.setDevice(MM,'metrics')
     
     drift=0.0027  # modify per routine as Intervalrunner depends on execution time object.

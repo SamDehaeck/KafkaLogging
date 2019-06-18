@@ -62,11 +62,14 @@ class KafkaInOut():
             keyW=self.deviceName
             
         if (self.device):
-            res=self.device.getInfo()
-            if (len(res.keys())!=0):  # only log if data is available
-                self.producer.produce(self.topic_out,key=keyW,value=json.dumps(res))
-            else:
-                print('Nothing in the collections')
+            try:
+                res=self.device.getInfo()
+                if (len(res.keys())!=0):  # only log if data is available
+                    self.producer.produce(self.topic_out,key=keyW,value=json.dumps(res))
+                else:
+                    print('Nothing in the collections')
+            except:
+                print('Problem getting info!')
             
         else:
             print('Set a device first')
@@ -85,7 +88,11 @@ class KafkaInOut():
             else:
                 #print('Received: {} with offset {} from topic {}'.format(mm.value(),mm.offset(),mm.topic()))
                 #res=self.elk.index(mm.topic().lower(),'_doc',body=mm.value())
-                return mm.value()
+                try:
+                    js=json.loads(mm.value())   # in most cases the message will be a json!
+                except:
+                    js=mm.value()
+                return js
 #                print(RR)
         else:
             return None
