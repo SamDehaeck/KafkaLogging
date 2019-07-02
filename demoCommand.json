@@ -1,0 +1,11 @@
+{
+  "topic": "metrics.command",
+  "Json": {
+         "configuration":[
+             {"Name": "Temp Cell","Measurement": "Temperature", "Type":"J","Channel": 0,"Rate": 12},
+             {"Name": "Temp Line","Measurement": "Temperature", "Type":"K","Channel": 1,"Rate":12},
+             {"Name": "Volt Acc", "Measurement": "Voltage", "Channel":7,"Mode":11,"Gain":1,"Rate":12},
+             {"Name": "Volt Bronkhorst", "Measurement": "Voltage", "Channel":5,"Mode":11,"Gain":1,"Rate":12}
+             ]
+         }
+ }

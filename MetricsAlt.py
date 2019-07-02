@@ -11,7 +11,7 @@ import time
 import numpy as np
 import collections
 
-import KafkaInOut
+import KafkaInOutConfig
 import argparse
 
 # this class logs disk_free, mem_free and cpu_used
@@ -36,13 +36,32 @@ class MetricLogger():
     def test(self):
         return True # always returns true as it should always work
     
-    def setInfo(self,commandList):
+    def doCommands(self,commandList):
         if (len(commandList)>1):
-            print('Received more than 1 event: {}'.format(len(commandList)))
-            print(commandList)
+            print('Received more than 1 event in command: {}'.format(len(commandList)))
+            print('Latest result is: {}'.format(commandList[-1]))
         else:
             #print('Received the following: {}'.format(commandList[0]))
             js=commandList[0]
+            print('received a: {}'.format(type(js)))
+            try:
+                configList=js['configuration']
+                for config in configList:
+                    name=config['Name']
+                    measType=config['Measurement']
+                    print('New config with name {} and type {}'.format(name,measType))
+            except:
+                print('Probably a problem in the json.')
+                
+        return
+    
+    def doConfig(self,configList):
+        if (len(configList)>1):
+            print('Received more than 1 event in config: {}'.format(len(configList)))
+            print('Latest result is: {}'.format(configList[-1]))
+        else:
+            #print('Received the following: {}'.format(commandList[0]))
+            js=configList[0]
             print('received a: {}'.format(type(js)))
             try:
                 configList=js['configuration']
@@ -60,7 +79,7 @@ class MetricLogger():
     
 # the code run if I run the program from the command line
 if __name__ == '__main__':
-    import IntervalRunner # watch out! this will get the asyncio loop!
+    import IntervalRunner # watch out! this will get the asyncio event loop!
     
     parser = argparse.ArgumentParser()
     parser.add_argument('interval',help='Logging interval')
@@ -75,11 +94,14 @@ if __name__ == '__main__':
         interval=0.1
     
     MM=MetricLogger()
-    kk=KafkaInOut.KafkaInOut(args.log_topic,args.command_topic)
+    kk=KafkaInOutConfig.KafkaInOutConfig()
     kk.setDevice(MM,'metrics')
+    kk.setCommandChannel('metrics.command','metricsalt.command')
+    kk.setConfigChannel('metrics.config','metricsalt.config')
+    kk.setLogChannel('metrics.log')
     
     drift=0.0027  # modify per routine as Intervalrunner depends on execution time object.
-    todoList=[(interval-drift,kk.logResult),(0.3,kk.consumeEvents)]
+    todoList=[(interval-drift,kk.logResult),(0.1,kk.checkCommands),(0.3,kk.checkConfig)]
     IntervalRunner.doIt(todoList)
     
 

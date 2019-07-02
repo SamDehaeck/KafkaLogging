@@ -12,6 +12,7 @@ import json
 import numpy as np
 import time
 import argparse
+import os.path
 
 class Publisher():
     def __init__(self):
@@ -57,17 +58,29 @@ class Publisher():
         else:
             print('Should setConnection first!!')
             
-    def readAndPublish(self,filename):
+    def readAndPublish(self,filename,connectParamsFile='Vinnig/KafkaConnectionSettings.json'):
         #print('Going to open: {}'.format(filename))
         js={}  # empty dict for in case reading fails
         with open(filename) as f:
             js=json.load(f)
         try:
+            home = os.path.expanduser("~")
+            filenameC=os.path.join(home,connectParamsFile)
+            with open(filenameC) as fc:
+                jsC=json.load(fc)
+                connectParams=jsC['connectParams']
+                topicBasename=jsC['topicBasename']
+                
             if (self.producer==None):
-                self.setConnection(js['Kafka']['connectParams'])
-            if (js['Kafka']['topic'] not in self.topics):
-                self.testTopic(js['Kafka']['topic'],js['Kafka']['topicParams'])
-            self.publishJson(js['Kafka']['topic'],js['Json'])
+                try:
+                    self.setConnection(connectParams)
+                except:
+                    print('Could not connect to Kafka backend')
+                   
+            topic=topicBasename+'.'+js['topic']
+            if (topic not in self.topics):
+                self.testTopic(topic)
+            self.publishJson(topic,js['Json'])
 
         except:
             print('Some problem with json formatting probably: {}'.format(js['Json']))

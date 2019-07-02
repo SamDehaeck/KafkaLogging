@@ -9,11 +9,20 @@ Created on Wed Feb  6 15:30:43 2019
 from confluent_kafka import Producer,Consumer
 import confluent_kafka.admin as admin
 import json
+import os.path
 #import asyncio
 
 class KafkaInOut():
-    def __init__(self,TopicOut,TopicIn='none',ConsumerID='ConsumerId',connectParams={'bootstrap.servers': 'localhost:9092'},
-                 topicParams=[1,1]):
+    def __init__(self,TopicOut,TopicIn='none',ConsumerID='ConsumerId',connectParams=None,connectParamsFile='Vinnig/KafkaConnectionSettings',
+                 topicParams=[1,1],topicBasename=''):
+        if (connectParams==None):  # then read the configuration file. Location is relative to home directory
+            home = os.path.expanduser("~")
+            filename=os.path.join(home,connectParamsFile)
+            with open(filename) as f:
+                js=json.load(f)
+                connectParams=js['Kafka']['connectParams']
+                topicBasename=js['Kafka']['topicBasename']
+        
         self.kafka_admin = admin.AdminClient(connectParams)
         self.topics=self.kafka_admin.list_topics().topics
         
