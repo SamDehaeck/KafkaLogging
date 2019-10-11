@@ -24,8 +24,8 @@ class Daq():
             self.daq=usb_2408()
             self.chanNames=[]
             self.chanFuncs=[]
-        except:
-            print('Could not find device')
+        except Exception as e:
+            print('Could not find device: {}'.format(e))
             
     # rate=10 is 30S/s, other good values are 8, 12, 13, 14, 15 with higher number=> slower
     def Temperature(self, tc_type, channel,rate=10):
@@ -52,7 +52,7 @@ class Daq():
         data=int(value*self.daq.Cal[gain].slope + self.daq.Cal[gain].intercept)
         return self.daq.volts(gain,data)
     
-    def getInfo(self):
+    def askOutput(self,topic):
         if (len(self.chanNames)>0):
             nu=int(np.round(time.time()*1000))
             systInfo=collections.OrderedDict()
@@ -85,23 +85,20 @@ class Daq():
             return None,None
             
     
-    def setInfo(self,commandList):
-        foundNewConfig=False
-        if (len(commandList)>0):
-            for js in commandList:
-                try:
-                    configList=js['configuration']
-                    for config in configList:
-                        name,func=self.processOneConfig(config)
-                        if (name):
-                            if (not foundNewConfig): # found a new scanlist, reinitialise configuration
-                                self.chanNames=[]
-                                self.chanFuncs=[]
-                                foundNewConfig=True
-                            self.chanNames.append(name)
-                            self.chanFuncs.append(func)
-                except:
-                    print('Probably a problem in the json.')
+    def giveInput(self,topic, eventList):
+        if (len(eventList)>0):
+            js=eventList[-1]   # only use the last configuration meassage
+            try:
+                configList=js['configuration']
+                self.chanNames=[]
+                self.chanFuncs=[]
+                for config in configList:
+                    name,func=self.processOneConfig(config)
+                    if (name):
+                        self.chanNames.append(name)
+                        self.chanFuncs.append(func)
+            except:
+                print('Probably a problem in the json.')
                 
         return
     
@@ -124,11 +121,22 @@ if __name__ == '__main__':
         interval=0.1
     
     DD=Daq()
-    kk=KafkaInOut.KafkaInOut(args.kafka_topic,'tempOut')
+    kk=KafkaInOut.KafkaInOut()
     kk.setDevice(DD,'daq')
     
-    drift=0.0027  # modify per routine as Intervalrunner depends on execution time object.
-    todoList=[(interval-drift,kk.logResult),(0.3,kk.consumeEvents)]
+    todoList=[]
+    
+    finLogName,logger=kk.makeProducer('daq.log')   # need to create a visible object of logger to avoid premature closure..
+    loggerFunc=lambda:kk.produceOutput(finLogName,logger)
+    drift=0.  # modify per routine as Intervalrunner depends on execution time object.
+    todoList.append((interval-drift,loggerFunc))
+    
+    finConfigName,configer=kk.makeConsumer('daq.config','daqConfiger',{'auto.offset.reset':'earliest'},True,[1,1])
+    configFunc=lambda:kk.consumeInput(finConfigName,configer)
+    drift=0  # modify per routine as Intervalrunner depends on execution time object.
+    todoList.append((0.3-drift,configFunc))
+    
+    
     IntervalRunner.doIt(todoList)
     
 

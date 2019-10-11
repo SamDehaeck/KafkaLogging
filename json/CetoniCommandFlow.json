@@ -1,0 +1,12 @@
+{
+ "kafka": {
+         "topic": "cetoni.command",
+         "topicParams":[1,1]
+         },
+ "json": {
+         "command": "make_flow",
+	 "params": {
+		"flow": 10
+		   }
+         }
+ }

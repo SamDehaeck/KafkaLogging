@@ -1,0 +1,14 @@
+{
+ "kafka": {
+         "topic": "daq.config",
+         "topicParams":[1,1]
+         },
+ "json": {
+         "configuration":[
+             {"Name": "Temp Cell","Measurement": "Temperature", "Type":"J","Channel": 0,"Rate": 12},
+             {"Name": "Temp Line","Measurement": "Temperature", "Type":"K","Channel": 1,"Rate":12},
+             {"Name": "Volt Precitec", "Measurement": "Voltage", "Channel":2,"Mode":11,"Gain":1,"Rate":12},
+             {"Name": "Volt Bronkhorst", "Measurement": "Voltage", "Channel":5,"Mode":11,"Gain":1,"Rate":12}
+             ]
+         }
+ }

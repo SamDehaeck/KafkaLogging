@@ -1,0 +1,11 @@
+{
+ "kafka": {
+         "topic": "cetoni.config",
+         "topicParams":[1,1]
+         },
+ "json": {
+         "syringe_id": 1,
+	 "piston_stroke": 60,
+	 "valve_pos": 0
+         }
+ }

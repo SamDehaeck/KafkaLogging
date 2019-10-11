@@ -1,0 +1,10 @@
+{
+ "kafka": {
+         "topic": "gigaviewer.config",
+         "topicParams":[1,1]
+         },
+ "json": {
+        "exposure": 1000,
+		"fps": 150
+         }
+ }

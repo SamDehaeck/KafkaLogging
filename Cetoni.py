@@ -46,6 +46,21 @@ class Pump():
         timeout_timer=qmixbus.PollingTimer(10000)
         timeout_timer.wait_until(self.pump.is_calibration_finished,True)
         return
+    
+    def askOutput(self,theTopic):
+        if ('log' in theTopic):
+            res=self.getInfo()
+            return res
+        else:
+            print('Asking for other output than log: {}'.format(theTopic))
+    
+    def giveInput(self,theTopic,theList):
+        if ('command' in theTopic):
+            self.doCommands(theList)
+        elif ('config' in theTopic):
+            self.doConfig(theList)
+        else:
+            print('Received unkown input from topic: {}'.format(theTopic))
             
     def getInfo(self):
         systInfo=collections.OrderedDict()
@@ -66,11 +81,47 @@ class Pump():
         except Exception as e:
             print('Problem getting info from pump: {}'.format(e))
             return systInfo # return an empty dictionary if no configuration has been set => no events logged
+        
+    # should act on all commands received, as we won't look at 'historical' data, only live feed
+    def doCommands(self,commandList):
+        for comm in commandList:
+            try:
+                theCommand=comm["command"]
+                if (theCommand=='set_fill_level'):
+                    theParams=comm["params"]
+                    self.setFillLevel(theParams["level"],theParams["flow"])
+                elif (theCommand=='make_flow'):
+                    theParams=comm["params"]
+                    self.makeFlow(theParams["flow"])
+                elif (theCommand=='stop_pumping'):
+                    self.stopPumping()
+                else:
+                    print('Did not understand the command: {}'.format(theCommand))
+            except:
+                print('Probably a problem in the command json')
+        return
+
+    # incoming configuration should include 
+    #           syringe information
+    #           valve position
+    def doConfig(self,configList):
+        # should only look at last configuration command
+        js=configList[-1]
+        try:
+            syr=js["syringe_id"]
+            pis=js["piston_stroke"]
+            self.setSyringe(syr,pis)
+            print('Successfully set the syringe: {} and {}'.format(syr,pis))
+            val=js["valve_pos"]
+            self.valveSwitch(val)
+        except:
+            print('Probably a problem in the json.')
+                
+        return
     
     def test(self):
         return self.pump.is_enabled() # always returns true as it should always work
-    
-    
+
     def setSyringe(self,inner,piston):
         self.pump.set_syringe_param(inner,piston)
         
@@ -85,30 +136,6 @@ class Pump():
         
     def valveSwitch(self, newPosition):
         self.valve.switch_valve_to_position(newPosition)
-    
-    # incoming configuration should include 
-    #           syringe information
-    #           new desired fill level
-    #           valve position
-    def setInfo(self,commandList):
-        foundNewConfig=False
-        if (len(commandList)>0):
-            for js in commandList:
-                try:
-                    configList=js['configuration']
-                    for config in configList:
-                        name,func=self.processOneConfig(config)
-                        if (name):
-                            if (not foundNewConfig): # found a new scanlist, reinitialise configuration
-                                self.chanNames=[]
-                                self.chanFuncs=[]
-                                foundNewConfig=True
-                            self.chanNames.append(name)
-                            self.chanFuncs.append(func)
-                except:
-                    print('Probably a problem in the json.')
-                
-        return
     
     def close(self):
         self.pump.stop_pumping()
@@ -131,11 +158,26 @@ if __name__ == '__main__':
         interval=0.1
     
     PP=Pump(False)
-    kk=KafkaInOut.KafkaInOut(args.kafka_topic,'tempOut')
-    kk.setDevice(PP,'pump')
+    kk=KafkaInOut.KafkaInOut()
+    kk.setDevice(PP,'cetoni')
     
+    todoList=[]
+    
+    finLogName,logger=kk.makeProducer('cetoni.log')   # need to create a visible object of logger to avoid premature closure..
+    loggerFunc=lambda:kk.produceOutput(finLogName,logger)
     drift=0.0027  # modify per routine as Intervalrunner depends on execution time object.
-    todoList=[(interval-drift,kk.logResult),(0.3,kk.consumeEvents)]
+    todoList.append((interval-drift,loggerFunc))
+    
+    finConfigName,configer=kk.makeConsumer('cetoni.config','cetoniConfiger',{'auto.offset.reset':'earliest'},True,[1,1])
+    configFunc=lambda:kk.consumeInput(finConfigName,configer)
+    drift=0  # modify per routine as Intervalrunner depends on execution time object.
+    todoList.append((0.3-drift,configFunc))
+
+    finCommandName,commander=kk.makeConsumer('cetoni.command','cetoniCommander',{'auto.offset.reset':'latest'},True,[1,1])
+    commandFunc=lambda:kk.consumeInput(finCommandName,commander)
+    drift=0  # modify per routine as Intervalrunner depends on execution time object.
+    todoList.append((0.1-drift,commandFunc))
+    
     IntervalRunner.doIt(todoList)
     
 

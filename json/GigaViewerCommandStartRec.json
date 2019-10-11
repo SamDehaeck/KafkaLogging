@@ -1,0 +1,14 @@
+{
+ "kafka": {
+         "topic": "gigaviewer.command",
+         "topicParams":[1,1]
+         },
+ "json": {
+         "command": "recstart",
+		 "params": {
+			"dirname": "/home/sam",
+			"codec": "FMF",
+			"recskip": 0
+				}
+         }
+ }

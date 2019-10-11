@@ -1,0 +1,4 @@
+{
+  "connectParams":{"bootstrap.servers": "localhost:9092"},
+  "topicBasename": "laptoptests"
+ }

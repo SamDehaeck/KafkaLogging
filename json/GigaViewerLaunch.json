@@ -1,0 +1,19 @@
+{
+ "kafka": {
+            "settingsfile": "/home/sam/Vinnig/KafkaConnectionSettings.json",
+            "logtopic": "gigaviewer.log",
+            "cmdtopic": "gigaviewer.command",
+            "cfgtopic": "gigaviewer.config",
+            "groupid" : "giga"
+         },
+ "interface": {
+            "showgui": true,
+            "showguicontrols": true,
+            "remotelog":true,
+            "remotecontrols":true
+         },
+ "camera": {
+            "autostart": true,
+            "driver": "0"
+         }
+ }

@@ -10,82 +10,110 @@ from confluent_kafka import Producer,Consumer
 import confluent_kafka.admin as admin
 import json
 import os.path
-#import asyncio
+import random
 
 class KafkaInOut():
-    def __init__(self,TopicOut,TopicIn='none',ConsumerID='ConsumerId',connectParams=None,connectParamsFile='Vinnig/KafkaConnectionSettings',
-                 topicParams=[1,1],topicBasename=''):
+    def __init__(self,connectParamsFile='Vinnig/KafkaConnectionSettings.json',connectParams=None, topicBasename=''):
         if (connectParams==None):  # then read the configuration file. Location is relative to home directory
             home = os.path.expanduser("~")
             filename=os.path.join(home,connectParamsFile)
             with open(filename) as f:
                 js=json.load(f)
-                connectParams=js['Kafka']['connectParams']
-                topicBasename=js['Kafka']['topicBasename']
+                connectParams=js['connectParams']
+                topicBasename=js['topicBasename']
         
         self.kafka_admin = admin.AdminClient(connectParams)
         self.topics=self.kafka_admin.list_topics().topics
-        
-        # setup producer
-        self.topic_out=TopicOut
-        
-        if (TopicOut in self.topics):
-            print('TopicOut exists: {}'.format(TopicOut))
-        else:
-            print('Should create TopicLog')
-            new_topic = admin.NewTopic(TopicOut, topicParams[0],topicParams[1])
-            self.kafka_admin.create_topics([new_topic,])
-            
-        self.producer=Producer(connectParams) # producer only used for log
-        
-        # Set up consumer
-        self.topic_in=TopicIn
-        if (TopicIn=='none'):
-            print('Not using consumer!')
-        else:
-            if (TopicIn not in self.topics):
-                raise ValueError('TopicIn does not exist')
-                
-            print('TopicIn exists: {}'.format(TopicIn))
-            params=connectParams
-            params['group.id']=ConsumerID  # change this if you want to restart from the first/newest message
-            params['default.topic.config']={'auto.offset.reset':'earliest'}
-               
-            self.consumer=Consumer(params) # producer only used for log
-            self.consumer.subscribe([TopicIn])
-            self.consumer.poll(0.1)
-        
-        
-        #self.consumer=Consumer(connectParams) # consumer only for commands?
+        self.connectParams=connectParams
+        self.topicBasename=topicBasename
         self.device=None
         self.deviceName='Unknown'
+        
+    def makeProducer(self,TopicOut,topicParams=[1,1]):
+        # setup producer
+        finTopicOut=self.topicBasename+'.'+TopicOut
+        print('Producer Topic: {}'.format(finTopicOut))
+        
+        if not (finTopicOut in self.topics):
+            print('Should create Topic: {}'.format(finTopicOut))
+            new_topic = admin.NewTopic(finTopicOut, topicParams[0],topicParams[1])
+            self.kafka_admin.create_topics([new_topic,])
+            
+        #return lambda : self.produceOutput(finTopicOut,Producer(self.connectParams))
+        return finTopicOut,Producer(self.connectParams)
+    
+        
+    def makeConsumer(self,TopicIn,consumerID,topicConfig={'auto.offset.reset':'earliest'},randomID=False,topicParams=[1,1]):
+        # Set up consumer
+        if (randomID):
+            consumerID=consumerID+'{:04d}'.format(random.randint(0,9999))
+        finTopicIn=self.topicBasename+'.'+TopicIn
+        print('Consumer Topic: {}'.format(finTopicIn))
+        if (finTopicIn not in self.topics):
+#            raise ValueError('TopicIn does not exist: {}'.format(self.topic_in))
+            print('Warning: Consumer created the topic: {}'.format(finTopicIn))
+            new_topic = admin.NewTopic(finTopicIn, topicParams[0],topicParams[1])
+            self.kafka_admin.create_topics([new_topic,])
+            
+        #print('TopicIn exists: {}'.format(TopicIn))
+        params=self.connectParams
+        params['group.id']=consumerID  # change this if you want to restart from the first/newest message
+        params['default.topic.config']=topicConfig
+           
+        consumer=Consumer(params) # producer only used for log
+        consumer.subscribe([finTopicIn])
+        consumer.poll(0.1)
+        
+        #return lambda : self.consumeInput(finTopicIn,consumer)
+        return (finTopicIn,consumer)
+    
+#    def setLogChannel(self,LogTopic,topicParams=[1,1]):
+#        self.producer=self.makeProducer(LogTopic,topicParams)
+        
+#    def setCommandChannel(self,CommandTopic,ConsumerID,topicConfig={'auto.offset.reset':'latest'}):
+#        self.commander=self.makeConsumer(CommandTopic,ConsumerID,topicConfig)
+        
+#    def setConfigChannel(self,ConfigTopic,ConsumerID,topicConfig={'auto.offset.reset':'earliest'}):
+#        self.config=self.makeConsumer(ConfigTopic,ConsumerID+'{:04d}'.format(random.randint(0,9999)),topicConfig) 
+            # make the consumer group random so as to ensure reading a pre-existing configuration and applying only the latest one..
+        
             
     def setDevice(self,device,devicename):
         self.device=device
         self.deviceName=devicename
         return self.device.test()
     
-    def logResult(self,keyword=''):
-        keyW=keyword
-        if (keyW==''):
-            keyW=self.deviceName
-            
+    def produceOutput(self,theTopic,theProducer):
         if (self.device):
+            keyW=self.deviceName
             try:
-                res=self.device.getInfo()
+                res=self.device.askOutput(theTopic)
                 if (len(res.keys())!=0):  # only log if data is available
-                    self.producer.produce(self.topic_out,key=keyW,value=json.dumps(res))
+                    #print('even got here! {}'.format(res))
+                    theProducer.produce(theTopic,key=keyW,value=json.dumps(res))
                 else:
                     print('Nothing in the collections')
-            except:
-                print('Problem getting info!')
+            except Exception as e:
+                print('Problem getting info! {}'.format(e))
             
         else:
             print('Set a device first')
             
+    def consumeInput(self,theTopic,theConsumer):
+        eventList=self.doFullPoll(theConsumer)
+        if (len(eventList)>0):
+            if (self.device):
+                # in principle will send everything, device to decide if it will look at all the events
+                self.device.giveInput(theTopic,eventList) 
+                #print('Will send command to device: {}'.format(eventList[-1]))
+            else:
+                print('Amount of events gathered: {}'.format(len(eventList)))
+                print('Consumed but no device: {}'.format(eventList[-1]))
+            
     # returns an event value or nothing
-    def consumeSingleEvent(self):
-        mm=self.consumer.poll(0.1)
+    # parameter is the consumer to use (config or command)
+    def doSinglePoll(self,consumer):
+        mm=consumer.poll(0.1)   # MODIFY use command or config consumer!
         if (mm):
             if (mm.error()):
                 errName=mm.error().name()
@@ -108,27 +136,19 @@ class KafkaInOut():
 
     # this has an internal loop to catch up untill the last available message
     # => will pass on a list of events to the device
-    def consumeEvents(self):
+    def doFullPoll(self,consumer):
 #        print('Starting loop')
         finished=False
         eventList=[]
         while (not finished):
-            RR=self.consumeSingleEvent()
+            RR=self.doSinglePoll(consumer)
             if (RR):
                 eventList.append(RR)
             else:
                 finished=True
-        if (len(eventList)>0):
-            if (self.device):
-                # in principle will send everything, device to decide if will look at everything
-                self.device.setInfo(eventList)
-#                print('Will send something to device: {}'.format(eventList[-1]))
-            else:
-                print('Amount of events gathered: {}'.format(len(eventList)))
-                print('Consumed but no device: {}'.format(eventList[-1]))
-
-#        print('-----------')
-        
+                
+        return eventList
+    
         
         
 

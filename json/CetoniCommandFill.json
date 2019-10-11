@@ -1,0 +1,13 @@
+{
+ "kafka": {
+         "topic": "cetoni.command",
+         "topicParams":[1,1]
+         },
+ "json": {
+         "command": "set_fill_level",
+	 "params": {
+		"level": 1,
+		"flow": 10
+		    }
+         }
+ }

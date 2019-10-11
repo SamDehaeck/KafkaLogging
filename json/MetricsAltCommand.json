@@ -1,0 +1,9 @@
+{
+ "kafka": {
+         "topic": "metrics.command",
+         "topicParams":[1,1]
+         },
+ "json": {
+         "command": "stop_pumping"
+         }
+ }

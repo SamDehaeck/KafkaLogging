@@ -12,7 +12,7 @@ import sys
 import numpy as np
 import collections
 
-import KafkaLogging
+import KafkaInOut
 import argparse
 
 # this class logs disk_free, mem_free and cpu_used
@@ -70,11 +70,16 @@ if __name__ == '__main__':
         interval=0.1
     
     TT=TerpsLogger('/dev/ttyUSB0')
-    kk=KafkaLogging.KafkaLogger(args.kafka_topic)
+    kk=KafkaInOut.KafkaInOut()
     kk.setDevice(TT,'terps')
     
-    drift=0  # modify per routine as Intervalrunner depends on execution time object.
-    todoList=[(interval-drift,kk.logResult)]
+    todoList=[]
+    
+    finLogName,logger=kk.makeProducer('terps.log')   # need to create a visible object of logger to avoid premature closure..
+    loggerFunc=lambda:kk.produceOutput(finLogName,logger)
+    drift=0.  # modify per routine as Intervalrunner depends on execution time object.
+    todoList.append((interval-drift,loggerFunc))
+    
     IntervalRunner.doIt(todoList)
     
 

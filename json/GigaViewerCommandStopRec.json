@@ -1,0 +1,9 @@
+{
+ "kafka": {
+         "topic": "gigaviewer.command",
+         "topicParams":[1,1]
+         },
+ "json": {
+         "command": "recstop"
+         }
+ }
