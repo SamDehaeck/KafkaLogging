@@ -67,17 +67,6 @@ class KafkaInOut():
         #return lambda : self.consumeInput(finTopicIn,consumer)
         return (finTopicIn,consumer)
     
-#    def setLogChannel(self,LogTopic,topicParams=[1,1]):
-#        self.producer=self.makeProducer(LogTopic,topicParams)
-        
-#    def setCommandChannel(self,CommandTopic,ConsumerID,topicConfig={'auto.offset.reset':'latest'}):
-#        self.commander=self.makeConsumer(CommandTopic,ConsumerID,topicConfig)
-        
-#    def setConfigChannel(self,ConfigTopic,ConsumerID,topicConfig={'auto.offset.reset':'earliest'}):
-#        self.config=self.makeConsumer(ConfigTopic,ConsumerID+'{:04d}'.format(random.randint(0,9999)),topicConfig) 
-            # make the consumer group random so as to ensure reading a pre-existing configuration and applying only the latest one..
-        
-            
     def setDevice(self,device,devicename):
         self.device=device
         self.deviceName=devicename
@@ -113,7 +102,7 @@ class KafkaInOut():
     # returns an event value or nothing
     # parameter is the consumer to use (config or command)
     def doSinglePoll(self,consumer):
-        mm=consumer.poll(0.1)   # MODIFY use command or config consumer!
+        mm=consumer.poll(0)   # MODIFY use command or config consumer!
         if (mm):
             if (mm.error()):
                 errName=mm.error().name()
@@ -123,8 +112,6 @@ class KafkaInOut():
                 else:
                     return None# just return an empty list as no real message is received!
             else:
-                #print('Received: {} with offset {} from topic {}'.format(mm.value(),mm.offset(),mm.topic()))
-                #res=self.elk.index(mm.topic().lower(),'_doc',body=mm.value())
                 try:
                     js=json.loads(mm.value())   # in most cases the message will be a json!
                 except:

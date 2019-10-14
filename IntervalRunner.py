@@ -25,8 +25,8 @@ for sig in (SIGTERM, SIGINT):
 # the main function, i.e. the main task that will be run untill completion
 #async def main(logfile):
 async def bigLoop(interval,funcToDo):
-    if (interval<0.1): # some arbitrary speed limit imposed here.
-        interval=0.1
+    if (interval<0.01): # some arbitrary speed limit imposed here.
+        interval=0.01
 
     try:
         while True:

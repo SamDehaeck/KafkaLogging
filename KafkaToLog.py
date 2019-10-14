@@ -14,13 +14,20 @@ import json
 #import asyncio
 
 class KafkaToLog():
-    def __init__(self,KafkaTopic,groupid,kafkaConnectParams={'bootstrap.servers': 'localhost:9092'}):
-        params=kafkaConnectParams
-        params['group.id']=groupid  # change this if you want to restart from the first message
-        params['default.topic.config']={'auto.offset.reset':'earliest'} # earliest is important; starts from beginning if groupid is a new one for this topic
+    def __init__(self,groupid,writeFolder,connectParamsFile='Vinnig/KafkaConnectionSettings.json'):
+        home = os.path.expanduser("~")
+        filename=os.path.join(home,connectParamsFile)
+        with open(filename) as f:
+            js=json.load(f)
+            params=js['connectParams']
+            params['group.id']=groupid  # change this if you want to restart from the first message
+            params['default.topic.config']={'auto.offset.reset':'earliest'} # earliest is important; starts from beginning if groupid is a new one for this topic
+            
+        self.topicRegex='^'+js['topicBasename']+'.*'
+        self.writeFolder=writeFolder
         self.currentTopics=[] # an empty list for now
         self.consumer=Consumer(params)
-        self.consumer.subscribe([KafkaTopic],on_assign=self.newTopicAssigned)
+        self.consumer.subscribe([self.topicRegex],on_assign=self.newTopicAssigned)
         self.consumer.poll(0.1)
 
             
@@ -29,9 +36,11 @@ class KafkaToLog():
         for p in listPartitions:
             if not(p in self.currentTopics): # new topic is detected!! => check if ELK index exists
                 self.currentTopics.append(p)
+                print(p)
 
         
     def relogResult(self,timeout):
+        print('Doing a poll')
         mm=self.consumer.poll(timeout)
         if (len(self.currentTopics)==0):
             #print('Problem with assignment of topics')
@@ -41,11 +50,11 @@ class KafkaToLog():
         if (mm):
             if (mm.error()):
                 errName=mm.error().name()
-                if (errName!='_PARTITION_EOF'):
-                    print('There was a problem with the consumption: {}'.format())
+                #if (errName!='_PARTITION_EOF'):
+                print('There was a problem with the consumption: {}  for {}'.format(errName,mm.topic()))
             else:
                 #print('Received: {} with offset {} from topic {}'.format(mm.value(),mm.offset(),mm.topic()))
-                top=mm.topic().lower().replace('.','_')+'.csv'
+                top=os.path.join(self.writeFolder,mm.topic().lower().replace('.','_')+'.csv')
                 outString,keystring=self.messageToString(mm.value())
                 #print(outString)
                 writeHeader= not os.path.exists(top)
@@ -83,18 +92,20 @@ class KafkaToLog():
 # the code run if I run the program from the command line
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('kafka_topic',help='Kafka topic or wildcard (e.g. ^*log)')  # I could extract basename from connection file!
-    parser.add_argument('-g','--group_id',help='Kafka group id', default='kafkatolog')
+    #parser.add_argument('kafka_topic',help='Kafka topic or wildcard (e.g. ^*log)')  # I could extract basename from connection file!
+    parser.add_argument('-g','--group_id',help='Kafka group id', default='kafkatolog3')
     
     args=parser.parse_args()
     
     signal.signal(signal.SIGINT, signal.default_int_handler)
 
-    kk=KafkaToLog(args.kafka_topic,args.group_id)
+    #kk=KafkaToLog(args.kafka_topic,args.group_id)
+    home = os.path.expanduser("~")
+    kk=KafkaToLog(args.group_id,home)
     
     try:
         while True:
-            kk.relogResult(0.1)
+            kk.relogResult(5)
     except KeyboardInterrupt:
         print('Pressed Ctrl-C')
     finally:

@@ -23,8 +23,9 @@ class MainWindow(QMainWindow):
 
         layout = QGridLayout()
         
-        self.dirName='/home/sam/ULB/Source Code/KafkaLogging/json'
-        self.connectKafka='Vinnig/KafkaConnectionSettings.json'
+        home = os.path.expanduser("~")
+        self.dirName=os.path.join(home,'Vinnig','json')
+        self.connectKafka=os.path.join('Vinnig','KafkaConnectionSettings.json')
         
         self.publisher=PublishJson.Publisher()
         self.publisher.setConnection(self.connectKafka)
