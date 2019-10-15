@@ -13,7 +13,6 @@ import numpy as np
 import collections
 
 import KafkaInOut
-import argparse
 
 # this class logs disk_free, mem_free and cpu_used
 # Still need to add hostname!
@@ -24,7 +23,7 @@ class TerpsLogger():
         self.port=serial.Serial(portName,9600,timeout=2)
         
     
-    def getInfo(self):
+    def askOutput(self,topic):
         systInfo=collections.OrderedDict()  # if getting data fails, empty returned.
         try:
             RR=self.port.readline()
@@ -58,16 +57,8 @@ class TerpsLogger():
 if __name__ == '__main__':
     import IntervalRunner # watch out! this will get the asyncio loop!
     
-    parser = argparse.ArgumentParser()
-    parser.add_argument('interval',help='Logging interval')
-#    parser.add_argument('-f','--filename',help="Log file name", default="0")
-    parser.add_argument('-o','--kafka_topic',help='Kafka topic name', default='pressureLog')
     
-    args=parser.parse_args()
-    
-    interval=float(args.interval)
-    if (interval<0.1): # some arbitrary speed limit imposed here.
-        interval=0.1
+    interval=0.1  # interval set by automatic sending speed of TERPS => 0.7s (>measuring interval of 0.6)
     
     TT=TerpsLogger('/dev/ttyUSB0')
     kk=KafkaInOut.KafkaInOut()
@@ -77,8 +68,7 @@ if __name__ == '__main__':
     
     finLogName,logger=kk.makeProducer('terps.log')   # need to create a visible object of logger to avoid premature closure..
     loggerFunc=lambda:kk.produceOutput(finLogName,logger)
-    drift=0.  # modify per routine as Intervalrunner depends on execution time object.
-    todoList.append((interval-drift,loggerFunc))
+    todoList.append((interval,loggerFunc))
     
     IntervalRunner.doIt(todoList)
     

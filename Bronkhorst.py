@@ -103,7 +103,7 @@ if __name__ == '__main__':
 
     interval=0.5
     
-    DD=Bronkhorst('/dev/ttyUSB1')
+    DD=Bronkhorst('/dev/ttyUSB0')
     kk=KafkaInOut.KafkaInOut()
     kk.setDevice(DD,'bronkhorst')
     
