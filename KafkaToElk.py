@@ -83,7 +83,7 @@ if __name__ == '__main__':
     
     try:
         while True:
-            kk.relogResult(0.1)
+            kk.relogResult(0.01)
     except KeyboardInterrupt:
         print('Pressed Ctrl-C')
     finally:

@@ -1,0 +1,10 @@
+{
+ "kafka": {
+         "topic": "bronkhorst.config",
+         "topicParams":[1,1]
+         },
+ "waittime": 5,
+ "json": {
+         "setpoint": 0.2
+         }
+ }
