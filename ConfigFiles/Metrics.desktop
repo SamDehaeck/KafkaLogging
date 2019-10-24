@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=Metrics
+Exec=bash -c "/home/sam/ULB/Source\ Code/KafkaLogging/MetricsAlt.py 1;$SHELL "
+Icon=application-x-appliance-symbolic.symbolic
+Terminal=true
+StartupNotify=true
+Type=Application
+Categories=Application
+

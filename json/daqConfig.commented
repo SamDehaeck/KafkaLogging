@@ -1,0 +1,53 @@
+{
+ "kafka": {
+         "topic": "daq.config",
+         "topicParams":[1,1]
+         },
+ "json": {
+         "configuration":[
+             {"Name": "Temp Cell","Measurement": "Temperature", "Type":"J","Channel": 0,"Rate": 12},
+             {"Name": "Temp Line","Measurement": "Temperature", "Type":"K","Channel": 1,"Rate":12},
+             {"Name": "Volt Precitec", "Measurement": "Voltage", "Channel":2,"Mode":11,"Gain":1,"Rate":12},
+             {"Name": "Volt Bronkhorst", "Measurement": "Voltage", "Channel":5,"Mode":11,"Gain":1,"Rate":12}
+             ]
+         }
+ }
+Voltage:
+mode:         0: Differential voltage
+              1: Single-ended voltage, high pin
+              2: Single-ended voltage, low pin
+              3: D/A readback voltage
+              4: Thermocouple
+              5: AIn offset calibration
+              6: AIn gain calibration
+              7: TC Offset Calibration
+              8: TC Gain Calibration Positive
+              9: TC Gain Calibration Negative
+             10: Thermocouple no burnout detect
+             11: Voltage Single Ended
+
+gain:         1: +/- 10.0 V
+              2: +/- 5.00 V
+              3: +/- 2.50 V
+              4: +/- 1.25 V
+              5: +/- 0.625 V
+              6: +/- 0.3125 V
+              7: +/- 0.15625 V
+              8: +/- 0.078125 V (Voltage and Thermocouple)
+              
+rate:         0: 30,000 S/s
+              1: 15,000 S/s
+              2:  7,500 S/s
+              3:  3,750 S/s
+              4:  2,000 S/s
+              5:  1,000 S/s
+              6:    500 S/s
+              7:    100 S/s
+              8:     60 S/s
+              9:     50 S/s
+             10:     30 S/s
+             11:     25 S/s
+             12:     15 S/s
+             13:     10 S/s
+             14:      5 S/s
+             15:    2.5 S/s

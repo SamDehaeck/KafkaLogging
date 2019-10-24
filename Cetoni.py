@@ -146,37 +146,26 @@ class Pump():
 if __name__ == '__main__':
     import IntervalRunner # watch out! this will get the asyncio loop!
     
-    parser = argparse.ArgumentParser()
-    parser.add_argument('interval',help='Logging interval')
-#    parser.add_argument('-f','--filename',help="Log file name", default="0")
-    parser.add_argument('-o','--kafka_topic',help='Kafka topic name', default='daqLog')
-    
-    args=parser.parse_args()
-    
-    interval=float(args.interval)
-    if (interval<0.1): # some arbitrary speed limit imposed here.
-        interval=0.1
-    
     PP=Pump(False)
     kk=KafkaInOut.KafkaInOut()
     kk.setDevice(PP,'cetoni')
     
     todoList=[]
     
+    logInterval=0.5
     finLogName,logger=kk.makeProducer('cetoni.log')   # need to create a visible object of logger to avoid premature closure..
     loggerFunc=lambda:kk.produceOutput(finLogName,logger)
-    drift=0.0027  # modify per routine as Intervalrunner depends on execution time object.
-    todoList.append((interval-drift,loggerFunc))
-    
+    todoList.append((logInterval,loggerFunc))
+
+    configInterval=0.3    
     finConfigName,configer=kk.makeConsumer('cetoni.config','cetoniConfiger',{'auto.offset.reset':'earliest'},True,[1,1])
     configFunc=lambda:kk.consumeInput(finConfigName,configer)
-    drift=0  # modify per routine as Intervalrunner depends on execution time object.
-    todoList.append((0.3-drift,configFunc))
+    todoList.append((configInterval,configFunc))
 
+    commandInterval=0.1
     finCommandName,commander=kk.makeConsumer('cetoni.command','cetoniCommander',{'auto.offset.reset':'latest'},True,[1,1])
     commandFunc=lambda:kk.consumeInput(finCommandName,commander)
-    drift=0  # modify per routine as Intervalrunner depends on execution time object.
-    todoList.append((0.1-drift,commandFunc))
+    todoList.append((commandInterval,commandFunc))
     
     IntervalRunner.doIt(todoList)
     
