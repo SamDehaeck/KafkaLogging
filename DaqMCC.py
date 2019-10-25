@@ -109,16 +109,8 @@ class Daq():
 if __name__ == '__main__':
     import IntervalRunner # watch out! this will get the asyncio loop!
     
-    parser = argparse.ArgumentParser()
-    parser.add_argument('interval',help='Logging interval')
-#    parser.add_argument('-f','--filename',help="Log file name", default="0")
-    parser.add_argument('-o','--kafka_topic',help='Kafka topic name', default='daqLog')
     
-    args=parser.parse_args()
-    
-    interval=float(args.interval)
-    if (interval<0.1): # some arbitrary speed limit imposed here.
-        interval=0.1
+    interval=0.5
     
     DD=Daq()
     kk=KafkaInOut.KafkaInOut()

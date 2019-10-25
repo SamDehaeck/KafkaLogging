@@ -11,6 +11,7 @@ import propar
 import time
 import numpy as np
 import collections
+import subprocess
 
 import KafkaInOut
 
@@ -96,29 +97,44 @@ class Bronkhorst():
     def close(self):
         del self.flowcontroller
         return True # always works
+
+# NOT PORTABLE => should find another way to find the right address    
+def findPort():
+    candidates=['ttyUSB{}'.format(pp) for pp in range(10)]
+    for p in candidates:
+        res=subprocess.run(['udevadm','info','--name={}'.format(p)],stdout=subprocess.PIPE).stdout.decode('utf8')
+        if ('Brainboxes' in res):
+            return '/dev/{}'.format(p)
+    return ''
     
 # the code run if I run the program from the command line
 if __name__ == '__main__':
+    
     import IntervalRunner # watch out! this will get the asyncio loop!
 
     interval=0.5
     
-    DD=Bronkhorst('/dev/ttyUSB0')
-    kk=KafkaInOut.KafkaInOut()
-    kk.setDevice(DD,'bronkhorst')
-    
-    todoList=[]
-    
-    finLogName,logger=kk.makeProducer('bronkhorst.log')   # need to create a visible object of logger to avoid premature closure..
-    loggerFunc=lambda:kk.produceOutput(finLogName,logger)
-    todoList.append((interval,loggerFunc))
-    
-    finConfigName,configer=kk.makeConsumer('bronkhorst.config','daqConfiger',{'auto.offset.reset':'earliest'},True,[1,1])
-    configFunc=lambda:kk.consumeInput(finConfigName,configer)
-    todoList.append((0.1,configFunc))
-    
-    
-    IntervalRunner.doIt(todoList)
-    
+    goodPort=findPort()
+    if (goodPort==''):
+        print('Did not find Brainboxes adapter => quitting')
+    else:
+        print('Bronkhorst Controller is using port {}'.format(goodPort))
+        DD=Bronkhorst(goodPort)
+        kk=KafkaInOut.KafkaInOut()
+        kk.setDevice(DD,'bronkhorst')
+        
+        todoList=[]
+        
+        finLogName,logger=kk.makeProducer('bronkhorst.log')   # need to create a visible object of logger to avoid premature closure..
+        loggerFunc=lambda:kk.produceOutput(finLogName,logger)
+        todoList.append((interval,loggerFunc))
+        
+        finConfigName,configer=kk.makeConsumer('bronkhorst.config','daqConfiger',{'auto.offset.reset':'earliest'},True,[1,1])
+        configFunc=lambda:kk.consumeInput(finConfigName,configer)
+        todoList.append((0.1,configFunc))
+        
+        
+        IntervalRunner.doIt(todoList)
+        
 
 

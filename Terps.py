@@ -11,6 +11,7 @@ import time
 import sys
 import numpy as np
 import collections
+import subprocess
 
 import KafkaInOut
 
@@ -51,6 +52,14 @@ class TerpsLogger():
     def close(self):
         return self.port.close() # always works
     
+# NOT PORTABLE => should find another way to find the right address    
+def findPort():
+    candidates=['ttyUSB{}'.format(pp) for pp in range(10)]
+    for p in candidates:
+        res=subprocess.run(['udevadm','info','--name={}'.format(p)],stdout=subprocess.PIPE).stdout.decode('utf8')
+        if ('Future' in res):
+            return '/dev/{}'.format(p)
+    return ''
     
     
 # the code run if I run the program from the command line
@@ -60,17 +69,22 @@ if __name__ == '__main__':
     
     interval=0.1  # interval set by automatic sending speed of TERPS => 0.7s (>measuring interval of 0.6)
     
-    TT=TerpsLogger('/dev/ttyUSB0')
-    kk=KafkaInOut.KafkaInOut()
-    kk.setDevice(TT,'terps')
+    goodPort=findPort()
+    if (goodPort==''):
+        print('Did not find Future Technology Devices adapter for TERPS=>quitting')
+    else:
+        print('Terps is using port {}'.format(goodPort))
+        TT=TerpsLogger(goodPort)
+        kk=KafkaInOut.KafkaInOut()
+        kk.setDevice(TT,'terps')
+        
+        todoList=[]
+        
+        finLogName,logger=kk.makeProducer('terps.log')   # need to create a visible object of logger to avoid premature closure..
+        loggerFunc=lambda:kk.produceOutput(finLogName,logger)
+        todoList.append((interval,loggerFunc))
+        
+        IntervalRunner.doIt(todoList)
+        
     
-    todoList=[]
     
-    finLogName,logger=kk.makeProducer('terps.log')   # need to create a visible object of logger to avoid premature closure..
-    loggerFunc=lambda:kk.produceOutput(finLogName,logger)
-    todoList.append((interval,loggerFunc))
-    
-    IntervalRunner.doIt(todoList)
-    
-
-

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=Kafka To Log
+Exec=bash -c "python3 /home/tipsy/KafkaLogging/KafkaToLog.py ;$SHELL "
+Icon=applications-engineering
+Terminal=true
+StartupNotify=true
+Type=Application
+Categories=Application
+
+Name[en_GB]=Kafka To Log

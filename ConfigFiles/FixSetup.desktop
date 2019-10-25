@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=FixSetup
+Exec=bash -c "sudo /home/tipsy/KafkaLogging/ConfigFiles/FixSetup.sh;dmesg | grep ttyUSB;$SHELL "
+Icon=file-roller
+Terminal=true
+StartupNotify=true
+Type=Application
+Categories=Application
+
+Name[en_GB]=FixSetup

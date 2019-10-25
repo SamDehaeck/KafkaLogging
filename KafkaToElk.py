@@ -8,14 +8,16 @@ Created on Wed Feb  6 15:30:43 2019
 
 from confluent_kafka import Consumer#,TopicPartition#,OFFSET_BEGINNING
 import elasticsearch
-import argparse
+#import argparse
 import signal
+import os
+import json
 
 #import json
 #import asyncio
 
 class KafkaToElk():
-    def __init__(self,KafkaTopic,groupid,kafkaConnectParams={'bootstrap.servers': 'localhost:9092'}):
+    def __init__(self,KafkaTopic,groupid,kafkaConnectParams={'bootstrap.servers': 'parabolic1.local:9092'}):
         
         # now look into connection with ElasticSearch
         self.elk=elasticsearch.Elasticsearch() # not yet using special connection parameters
@@ -35,6 +37,7 @@ class KafkaToElk():
         for p in listPartitions:
             if not(p in self.currentTopics): # new topic is detected!! => check if ELK index exists
                 self.currentTopics.append(p)
+                print('Listening to topic {}'.format(p.topic.lower()))
                 if not(self.elk.indices.exists(p.topic.lower())):
                     self.elk.indices.create(p.topic.lower(),body=self.mymapping)
 
@@ -53,8 +56,8 @@ class KafkaToElk():
                     print('There was a problem with the consumption: {}'.format())
             else:
                 #print('Received: {} with offset {} from topic {}'.format(mm.value(),mm.offset(),mm.topic()))
-                #res=self.elk.index(mm.topic().lower(),'_doc',body=mm.value())
-                res=self.elk.index(mm.topic().lower(),body=mm.value())
+                res=self.elk.index(mm.topic().lower(),'_doc',body=mm.value())
+                #res=self.elk.index(mm.topic().lower(),body=mm.value())
                 goodShards=res['_shards']['successful']
                 if (goodShards==0):
                     print('Problem with elasticsearch indexing')
@@ -71,15 +74,19 @@ class KafkaToElk():
         
 # the code run if I run the program from the command line
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('kafka_topic',help='Kafka topic or wildcard (e.g. ^*log)')
-    parser.add_argument('-g','--group_id',help='Kafka group id', default='kafkatoelk')
-    
-    args=parser.parse_args()
-    
+    print('KafkaToElk')
     signal.signal(signal.SIGINT, signal.default_int_handler)
-
-    kk=KafkaToElk(args.kafka_topic,args.group_id)
+    
+    connectParamsFile='Vinnig/KafkaConnectionSettings.json'
+    home = os.path.expanduser("~")
+    filename=os.path.join(home,connectParamsFile)
+    with open(filename) as f:
+        js=json.load(f)
+        connectParams=js['connectParams']
+        topicBasename=js['topicBasename']
+    
+    topic='^{}.*'.format(topicBasename)
+    kk=KafkaToElk(topic,'kafkaToElk')
     
     try:
         while True:

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=VinnigVentje
+Exec=python3 /home/tipsy/KafkaLogging/KafkaGUI.py
+Icon=applications-utilities
+Terminal=false
+StartupNotify=true
+Type=Application
+Categories=Application
+
+Name[en_GB]=VinnigVentje

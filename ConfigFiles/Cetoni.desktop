@@ -1,10 +1,12 @@
 [Desktop Entry]
 Version=1.0
-Name=Metrics
-Exec=bash -c "/home/tipsy/KafkaLogging/MetricsAlt.py 0.8;$SHELL "
+Name=Cetoni
+Exec=bash -c "python3 /home/tipsy/KafkaLogging/Cetoni.py ;$SHELL "
+Path=/home/tipsy/KafkaLogging
 Icon=applications-science
 Terminal=true
 StartupNotify=true
 Type=Application
 Categories=Application
 
+Name[en_GB]=Cetoni
