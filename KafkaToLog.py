@@ -7,7 +7,7 @@ Created on Wed Feb  6 15:30:43 2019
 """
 
 from confluent_kafka import Consumer#,TopicPartition#,OFFSET_BEGINNING
-import argparse
+#import random
 import signal
 import os.path
 import json
@@ -32,26 +32,29 @@ class KafkaToLog():
 
             
     def newTopicAssigned(self,consumer,listPartitions):
-        print('Found {} topics'.format(len(listPartitions)))
+        #print('Found {} topics'.format(len(listPartitions)))
         for p in listPartitions:
-            if not(p in self.currentTopics): # new topic is detected!! => check if ELK index exists
+            if not(p in self.currentTopics): # new topic is detected!!
+                print('Found topic {}'.format(p))
                 self.currentTopics.append(p)
-                print(p)
+                #print(p)
 
         
     def relogResult(self,timeout):
-        print('Doing a poll')
+        #print('Doing a poll')
         mm=self.consumer.poll(timeout)
         if (len(self.currentTopics)==0):
             #print('Problem with assignment of topics')
-            pass
-    
+            return True
 
         if (mm):
             if (mm.error()):
                 errName=mm.error().name()
-                #if (errName!='_PARTITION_EOF'):
-                print('There was a problem with the consumption: {}  for {}'.format(errName,mm.topic()))
+                if (errName!='_PARTITION_EOF'):
+                    print('There was a problem with the consumption: {}  for {}'.format(errName,mm.topic()))
+                    return False
+                else:
+                    return True
             else:
                 #print('Received: {} with offset {} from topic {}'.format(mm.value(),mm.offset(),mm.topic()))
                 top=os.path.join(self.writeFolder,mm.topic().lower().replace('.','_')+'.csv')
@@ -63,49 +66,42 @@ class KafkaToLog():
                     if (writeHeader):
                        F.writelines(keystring+'\n') 
                     F.writelines(outString+'\n')
-                
+                return True
                 # probably should check for errors for res
         else:
-            #print('No message received')
-            pass
+            print('No message received')
+            return False
         
     def messageToString(self,message):
         T=json.loads(message)
         St=''
         keySt=''
-        for kk in T.keys():
-            St=St+'{} '.format(T[kk])
-            keySt=keySt+'{} '.format(kk)
-        # now iterate over keys and place the values in a column
-        # if necessary sort the keys in order to have a guaranteed order
+        allKeys=T.keys()
+        allKeys.sort()     # sort alphabetically to ensure same ordering each time
+        for kk in allKeys:
+            St=St+'{}\t'.format(T[kk])
+            keySt=keySt+'{}\t'.format(kk)
         # if necessary add @timestamp to have timestamp always in first place..
         return St,keySt
-        
-        
             
     def close(self):
         self.consumer.close()
-        
-
       
         
 # the code run if I run the program from the command line
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    #parser.add_argument('kafka_topic',help='Kafka topic or wildcard (e.g. ^*log)')  # I could extract basename from connection file!
-    parser.add_argument('-g','--group_id',help='Kafka group id', default='kafkatolog3')
-    
-    args=parser.parse_args()
-    
     signal.signal(signal.SIGINT, signal.default_int_handler)
 
-    #kk=KafkaToLog(args.kafka_topic,args.group_id)
-    home = os.path.expanduser("~")
-    kk=KafkaToLog(args.group_id,home)
+    logpath = os.path.join(os.path.expanduser("~"),'Vinnig','Logs')
+#    group_id='kafkaToLog{:04d}'.format(random.randint(0,9999))
+    group_id='kafkaToLog'
+    kk=KafkaToLog(group_id,logpath)
     
     try:
-        while True:
-            kk.relogResult(5)
+        worked=True
+        while worked:
+            worked=kk.relogResult(5)
+        print("I think I'm done!!!")
     except KeyboardInterrupt:
         print('Pressed Ctrl-C')
     finally:
