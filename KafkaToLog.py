@@ -35,7 +35,7 @@ class KafkaToLog():
         #print('Found {} topics'.format(len(listPartitions)))
         for p in listPartitions:
             if not(p in self.currentTopics): # new topic is detected!!
-                print('Found topic {}'.format(p))
+                print('Found topic {}'.format(p.topic))
                 self.currentTopics.append(p)
                 #print(p)
 
@@ -77,8 +77,8 @@ class KafkaToLog():
         St=''
         keySt=''
         allKeys=T.keys()
-        allKeys.sort()     # sort alphabetically to ensure same ordering each time
-        for kk in allKeys:
+        sortKeys=sorted(allKeys)     # sort alphabetically to ensure same ordering each time
+        for kk in sortKeys:
             St=St+'{}\t'.format(T[kk])
             keySt=keySt+'{}\t'.format(kk)
         # if necessary add @timestamp to have timestamp always in first place..

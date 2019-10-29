@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=GigaViewerIDS
+Exec=GigaViewer /home/tipsy/Vinnig/json/GigaViewerLaunchIDS.json
+Icon=applications-science
+Terminal=false
+StartupNotify=true
+Type=Application
+Categories=Application
+
+Name[en_GB]=GigaViewerIDS
