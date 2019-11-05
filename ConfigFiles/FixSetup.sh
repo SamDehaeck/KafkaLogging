@@ -1,4 +1,5 @@
 #!/bin/bash
+systemctl restart confluent-kafka
 /sbin/modprobe ftdi_sio
 echo 05d1 1001 > /sys/bus/usb-serial/drivers/ftdi_sio/new_id
 echo 05d1 1002 > /sys/bus/usb-serial/drivers/ftdi_sio/new_id

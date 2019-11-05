@@ -14,7 +14,6 @@ import collections
 import json
 
 import KafkaInOut
-import argparse
 
 # this class logs disk_free, mem_free and cpu_used
 # Still need to add hostname!
@@ -74,13 +73,17 @@ class Relay():
         ch2=self.relay.DIn(2)
         ch3=self.relay.DIn(3)
         bits=self.numsToBits([ch0,ch1,ch2,ch3])
+        
+        bitList=bits.tolist()
     
         nu=int(np.round(time.time()*1000))
         systInfo=collections.OrderedDict()
         systInfo['@timestamp']=nu
-        systInfo['bitvalue']=json.dumps(bits.tolist())
-        systInfo['portnumb']=json.dumps((np.arange(24)+1).tolist())
-
+        systInfo['bitvalue']=bitList
+        systInfo['portnumb']=(np.arange(24)+1).tolist()
+        for i in range(24):
+            systInfo['port{:02d}'.format(i+1)]=bitList[i]
+       
         return systInfo
 
     def giveInput(self,topic, eventList):
@@ -104,16 +107,7 @@ class Relay():
 if __name__ == '__main__':
     import IntervalRunner # watch out! this will get the asyncio loop!
     
-    parser = argparse.ArgumentParser()
-    parser.add_argument('interval',help='Logging interval')
-#    parser.add_argument('-f','--filename',help="Log file name", default="0")
-    parser.add_argument('-o','--kafka_topic',help='Kafka topic name', default='relay.log')
-    
-    args=parser.parse_args()
-    
-    interval=float(args.interval)
-    if (interval<0.1): # some arbitrary speed limit imposed here.
-        interval=0.1
+    interval=0.8
     
     DD=Relay()
     kk=KafkaInOut.KafkaInOut()

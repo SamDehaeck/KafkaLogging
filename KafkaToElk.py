@@ -56,12 +56,15 @@ class KafkaToElk():
                     print('There was a problem with the consumption: {}'.format())
             else:
                 #print('Received: {} with offset {} from topic {}'.format(mm.value(),mm.offset(),mm.topic()))
-                res=self.elk.index(mm.topic().lower(),'_doc',body=mm.value())
-                #res=self.elk.index(mm.topic().lower(),body=mm.value())
-                goodShards=res['_shards']['successful']
-                if (goodShards==0):
-                    print('Problem with elasticsearch indexing')
-                # probably should check for errors for res
+                try:
+                    res=self.elk.index(mm.topic().lower(),'_doc',body=mm.value())
+                    #res=self.elk.index(mm.topic().lower(),body=mm.value())
+                    goodShards=res['_shards']['successful']
+                    if (goodShards==0):
+                        print('Problem with elasticsearch indexing')
+                    # probably should check for errors for res
+                except Exception as e:
+                    print('Problem with topic {}: {}'.format(mm.topic(),e))
         else:
             #print('No message received')
             pass
